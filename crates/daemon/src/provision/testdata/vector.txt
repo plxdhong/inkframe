@@ -1,0 +1,10 @@
+code=7K3M9QXR2D4F
+phone_secret=0101..01
+device_secret=0202..02
+salt=0303..03
+phone_hello={"t":"hello","v":1,"pub":"pOCSkrZRwni5dyxWn1+puxPZBrRqtoyd+dwrRAn4ogk="}
+device_hello={"t":"hello","v":1,"pub":"zo060cy2M+x7cMF4FKXHbs0CloUFDTRHRboFhw5YfVk=","salt":"AwMDAwMDAwMDAwMDAwMDAw=="}
+phone_auth={"t":"auth","mac":"7qpooIEqFfCCEJq5RBGiVAojp8XMav4ZnR+/EhxzwJA="}
+device_auth={"t":"auth","mac":"3W6VXK9ZbcImWa9EQ0xeSMDVV0pB/dhfF+evstwrFkg="}
+sealed_scan={"t":"sealed","c":"7Henh+LKizCCDxUoI/vUlpa4Ii96woCWGfatcA=="}
+sealed_bye={"t":"sealed","c":"cCe0PVG9QgADUx9pWoLs0UK5NfUyD7XtHY8a"}

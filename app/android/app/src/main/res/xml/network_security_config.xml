@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The frame serves plain HTTP on the LAN at an address only known at runtime
+     (DHCP, or 10.12.0.1 over USB), so cleartext cannot be limited to fixed domains. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
+</network-security-config>

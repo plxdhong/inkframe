@@ -1,0 +1,7 @@
+/target
+/data
+*.local.toml
+/dist
+.DS_Store
+/testImage
+CLAUDE.local.md

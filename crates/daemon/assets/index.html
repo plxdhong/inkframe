@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>墨水屏调试</title>
+<style>
+:root{--paper:#EDEBE4;--ink:#1C1F22;--red:#B4161B;--blue:#1F56B3;--yellow:#E6CC2E;--green:#2E6B3F;--line:#1C1F22;--muted:#55595e;--card:#F6F5F0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 -apple-system,"PingFang SC","Noto Sans SC",sans-serif}
+header{background:var(--ink);color:var(--paper);padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:18px;font-weight:800;letter-spacing:.5px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+main{max-width:1180px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:1100px){main{grid-template-columns:minmax(0,2fr) minmax(320px,1fr)}}
+section{background:var(--card);border:3px solid var(--line);padding:14px 16px;min-width:0}
+h2{margin:0 0 10px;font-size:15px;font-weight:800}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600;word-break:break-all}
+.screen{width:100%;aspect-ratio:5/3;background:#fff;border:3px solid var(--line);display:block;object-fit:contain;image-rendering:pixelated}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select,input[type=text]{font:inherit;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:8px 12px;min-height:40px;cursor:pointer}
+button:hover{background:var(--yellow)}
+button.primary{background:var(--ink);color:var(--paper)}
+button.primary:hover{background:var(--blue)}
+button.danger{border-color:var(--red);color:var(--red)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:5px 6px;border-bottom:1px solid #c9c6bc;vertical-align:top}
+.ok{color:var(--green);font-weight:700}.bad{color:var(--red);font-weight:700}
+pre{margin:0;background:var(--ink);color:var(--paper);padding:10px;font:12px/1.45 ui-monospace,Menlo,monospace;max-height:320px;overflow:auto;white-space:pre-wrap}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.photo{border:2px solid var(--line);background:#fff}
+.photo img{width:100%;aspect-ratio:5/3;object-fit:cover;display:block}
+.photo .row{padding:6px;gap:4px}.photo button{min-height:32px;padding:4px 8px;font-size:12px}
+.tabs{display:flex;gap:0;margin-bottom:8px}.tabs button{border-right-width:0}.tabs button:last-child{border-right-width:2px}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;display:none;max-width:90vw}
+</style>
+</head>
+<body>
+<header>
+  <h1>墨水屏相册 · 调试页</h1>
+  <div id="hdr" aria-live="polite">连接中…</div>
+</header>
+<main>
+  <div style="display:grid;gap:16px;min-width:0">
+    <section>
+      <div class="tabs" role="group" aria-label="画面来源">
+        <button type="button" data-src="preview" aria-pressed="true">当前画面</button>
+        <button type="button" data-src="morning" aria-pressed="false">早间预览</button>
+        <button type="button" data-src="evening" aria-pressed="false">晚间预览</button>
+      </div>
+      <img id="screen" class="screen" alt="墨水屏画面">
+      <p class="hint" id="screenHint"></p>
+    </section>
+    <section>
+      <h2>操作</h2>
+      <div class="row">
+        <button class="primary" type="button" data-refresh="auto">按时间表刷新</button>
+        <button type="button" data-refresh="morning">显示早间仪表盘</button>
+        <button type="button" data-refresh="evening">显示晚间仪表盘</button>
+        <button type="button" data-refresh="photo">下一张照片</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label for="mode">模式</label>
+        <select id="mode"><option value="auto">自动（按时间表）</option><option value="dashboard">仅仪表盘</option><option value="photo">仅照片</option></select>
+        <span style="flex:1"></span>
+        <button type="button" data-pattern="colors">测试：六色色块</button>
+        <button type="button" data-pattern="dither">测试：抖动样张</button>
+        <button type="button" data-pattern="white">清屏（白）</button>
+      </div>
+    </section>
+    <section>
+      <h2>蓝牙配网</h2>
+      <p id="prov" class="hint" style="margin:0 0 8px">—</p>
+      <div class="row">
+        <button type="button" id="provStart">开始配网（屏幕显示配网码）</button>
+        <button type="button" id="provStop">结束配网</button>
+      </div>
+      <p class="hint">用手机 App「添加相框」完成。新设备开机会自动进入配网；长时间断网时只开启蓝牙广播，手机连上后才显示配网码。</p>
+    </section>
+    <section>
+      <h2>照片</h2>
+      <div class="row">
+        <label for="file">上传（自动裁剪为 800×480）</label>
+        <input id="file" type="file" accept="image/*" multiple>
+        <button type="button" id="reprocess">按当前调色板重新处理</button>
+      </div>
+      <div class="photos" id="photos" style="margin-top:10px"></div>
+    </section>
+    <section>
+      <h2>最近日志</h2>
+      <pre id="logs"></pre>
+    </section>
+  </div>
+  <div style="display:grid;gap:16px;align-content:start;min-width:0">
+    <section>
+      <h2>状态</h2>
+      <dl class="kv" id="kv"></dl>
+    </section>
+    <section>
+      <h2>任务健康</h2>
+      <table><thead><tr><th>任务</th><th>状态</th><th>最后成功</th><th>重启</th></tr></thead><tbody id="tasks"></tbody></table>
+    </section>
+    <section id="debug" hidden>
+      <h2>开发调试</h2>
+      <div class="row"><label for="at">模拟时间</label><input id="at" type="text" placeholder="2026-10-15 22:29"><button type="button" id="setClock">设置</button><button type="button" id="resetClock">恢复</button></div>
+      <div class="row" style="margin-top:8px"><button type="button" id="warn">模拟暴雨橙色预警</button>
+        <select id="stallTask" aria-label="要卡死的任务"><option>engine</option><option>weather</option><option>network</option></select>
+        <button type="button" class="danger" id="stall">卡死任务（测看门狗）</button></div>
+      <p class="hint">仅在 http.debug_endpoints = true 时可用。</p>
+    </section>
+  </div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $ = s => document.querySelector(s);
+const api = (p, opt = {}) => fetch('/api/v1' + p, opt).then(async r => {
+  const t = r.headers.get('content-type') || '';
+  const body = t.includes('json') ? await r.json() : null;
+  if (!r.ok) throw new Error(body && body.error || r.statusText);
+  return body;
+});
+const post = (p, data, method = 'POST') => api(p, { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(data || {}) });
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 2600); }
+const fmt = s => s ? new Date(s).toLocaleString('zh-CN', { hour12: false }) : '—';
+const slotName = { morning: '早间仪表盘', evening: '晚间仪表盘', photo: '照片' };
+let src = 'preview';
+
+function loadScreen() {
+  const url = src === 'preview' ? '/api/v1/preview.png' : `/api/v1/render/${src}.png`;
+  $('#screen').src = url + '?t=' + Date.now();
+  $('#screenHint').textContent = src === 'preview' ? '面板上实际显示的内容（按实测六色渲染）' : '用当前缓存数据渲染，不刷新面板';
+}
+document.querySelectorAll('[data-src]').forEach(b => b.onclick = () => {
+  src = b.dataset.src;
+  document.querySelectorAll('[data-src]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  loadScreen();
+});
+$('#screen').onerror = () => { $('#screenHint').textContent = '还没有画面'; };
+
+let lastLabel = null;
+async function refreshStatus() {
+  try {
+    const s = await api('/status');
+    const d = s.display;
+    $('#hdr').innerHTML = `<span class="dot" style="background:${s.healthy ? 'var(--green)' : 'var(--red)'}"></span>${s.healthy ? '运行正常' : '有任务异常'} · ${s.now}${s.clock_offset_secs ? '（模拟时间）' : ''}`;
+    const rows = [
+      ['模式', { auto: '自动', dashboard: '仅仪表盘', photo: '仅照片' }[s.mode]],
+      ['今天', s.workday ? '工作日' : '非工作日'],
+      ['当前时段', s.current_event ? `${s.current_event.at.slice(11, 16)} ${slotName[s.current_event.slot]}` : '—'],
+      ['下一次', s.next_event ? `${s.next_event.at.replace('T', ' ').slice(0, 16)} ${slotName[s.next_event.slot]}` : '—'],
+      ['面板', `${d.backend}${d.busy ? ' · 刷新中' : ''}`],
+      ['显示内容', s.shown ? `${s.shown.content} @ ${s.shown.at.replace('T', ' ').slice(0, 16)}` : '—'],
+      ['上次刷新', `${fmt(d.last_refresh)}${d.last_duration_ms ? ` (${(d.last_duration_ms / 1000).toFixed(1)}s)` : ''}`],
+      ['刷新失败', d.consecutive_failures ? `<span class="bad">${d.consecutive_failures} 次：${d.last_error}</span>` : '0'],
+      ['天气', s.weather ? `${s.weather.provider} · ${fmt(s.weather.fetched_at)}${s.weather.warnings.length ? ` · <span class="bad">${s.weather.warnings.length} 条预警</span>` : ''}` : '暂无'],
+      ['网络', s.network.online ? '<span class="ok">在线</span>' : `<span class="bad">离线（连续 ${s.network.consecutive_failures} 次）</span>`],
+      ['照片', s.photos + ' 张'],
+      ['运行时长', Math.round(s.uptime_secs / 60) + ' 分钟'],
+    ];
+    const p = s.provision;
+    const reasons = { unconfigured: '未配置 Wi-Fi', offline: '长时间断网', button: '按键', api: '手动开启' };
+    $('#prov').innerHTML = p.active
+      ? `<span class="ok">进行中</span> · ${reasons[p.reason] || p.reason} · ${p.transport === 'sim' ? '模拟器 (TCP)' : 'BLE'} · ${p.client_connected ? '手机已连接' : '等待手机'}${p.code_on_panel ? ' · 屏幕显示配网码' : ''}`
+      : `未开启 · ${s.device.name}`;
+    $('#kv').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+    $('#tasks').innerHTML = s.tasks.map(t => `<tr><td>${t.name}</td><td class="${t.healthy ? 'ok' : 'bad'}">${t.healthy ? '正常' : `无心跳 ${t.silent_secs}s`}${t.last_error ? `<br><small>${t.last_error}</small>` : ''}</td><td>${fmt(t.last_ok)}</td><td>${t.restarts}</td></tr>`).join('');
+    $('#mode').value = s.mode;
+    const label = d.label + d.last_refresh;
+    if (src === 'preview' && label !== lastLabel) { lastLabel = label; loadScreen(); }
+  } catch (e) { $('#hdr').textContent = '连接失败：' + e.message; }
+}
+async function refreshLogs() { try { $('#logs').textContent = (await api('/logs?n=120')).join('\n'); } catch (e) {} }
+async function refreshPhotos() {
+  const list = await api('/photos');
+  $('#photos').innerHTML = list.length ? list.map(p => `<div class="photo"><img src="/api/v1/photos/${p.id}/source.png" alt="照片 ${p.id}" loading="lazy">
+    <div class="row"><button type="button" data-fav="${p.id}" aria-pressed="${p.favorite}">${p.favorite ? '★ 已收藏' : '☆ 收藏'}</button>
+    <button type="button" data-pause="${p.id}">${p.paused ? '恢复' : '暂停'}</button>
+    <button type="button" class="danger" data-del="${p.id}" aria-label="删除照片 ${p.id}">删除</button></div></div>`).join('') : '<p class="hint">还没有照片</p>';
+  const byId = Object.fromEntries(list.map(p => [p.id, p]));
+  document.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => post('/photos/' + b.dataset.fav, { favorite: !byId[b.dataset.fav].favorite }, 'PATCH').then(refreshPhotos));
+  document.querySelectorAll('[data-pause]').forEach(b => b.onclick = () => post('/photos/' + b.dataset.pause, { paused: !byId[b.dataset.pause].paused }, 'PATCH').then(refreshPhotos));
+  document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => confirm('删除这张照片？') && api('/photos/' + b.dataset.del, { method: 'DELETE' }).then(refreshPhotos));
+}
+
+// Crop to 5:3 and scale to 800x480 in the browser: the device only accepts pre-scaled images.
+function scaleTo800x480(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = 800; c.height = 480;
+      const s = Math.max(800 / img.width, 480 / img.height);
+      const w = img.width * s, h = img.height * s;
+      c.getContext('2d').drawImage(img, (800 - w) / 2, (480 - h) / 2, w, h);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('encode failed')), 'image/jpeg', 0.92);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error('无法读取图片'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+$('#file').onchange = async e => {
+  for (const f of e.target.files) {
+    try { await api('/photos', { method: 'POST', body: await scaleTo800x480(f) }); toast('已上传 ' + f.name); }
+    catch (err) { toast('上传失败：' + err.message); }
+  }
+  e.target.value = ''; refreshPhotos();
+};
+$('#reprocess').onclick = () => post('/photos/reprocess').then(r => toast(`已重新处理 ${r.reprocessed} 张`)).catch(e => toast(e.message));
+document.querySelectorAll('[data-refresh]').forEach(b => b.onclick = () => post('/refresh', { target: b.dataset.refresh }).then(() => toast('已加入刷新队列')).catch(e => toast(e.message)));
+document.querySelectorAll('[data-pattern]').forEach(b => b.onclick = () => post('/test-pattern', { kind: b.dataset.pattern }).then(() => toast('测试图案已发送')).catch(e => toast(e.message)));
+$('#provStart').onclick = () => post('/provision/start').then(r => toast(r.started ? '已开始配网' : '配网已在进行')).catch(e => toast(e.message));
+$('#provStop').onclick = () => post('/provision/stop').then(() => toast('正在结束配网'));
+$('#mode').onchange = e => post('/mode', { mode: e.target.value }, 'PUT').then(() => toast('模式已切换')).catch(err => toast(err.message));
+
+// Debug tools appear only when the endpoints exist.
+fetch('/api/v1/debug/clock', { method: 'OPTIONS' }).then(r => { if (r.status !== 404) $('#debug').hidden = false; });
+$('#setClock').onclick = () => post('/debug/clock', { at: $('#at').value.trim() }).then(r => toast('模拟时间 ' + r.now)).catch(e => toast(e.message));
+$('#resetClock').onclick = () => post('/debug/clock', { offset_secs: 0 }).then(() => toast('已恢复真实时间'));
+$('#warn').onclick = () => post('/debug/warning', { type_name: '暴雨', color: 'Orange' }).then(() => toast('已注入预警')).catch(e => toast(e.message));
+$('#stall').onclick = () => confirm('卡死任务后看门狗会停止喂狗，systemd 将重启进程。继续？') && post('/debug/stall', { task: $('#stallTask').value }).then(() => toast('已卡死'));
+
+loadScreen(); refreshStatus(); refreshLogs(); refreshPhotos();
+setInterval(refreshStatus, 3000); setInterval(refreshLogs, 5000);
+</script>
+</body>
+</html>

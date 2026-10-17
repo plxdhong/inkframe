@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "inkframe-dev",
+      "runtimeExecutable": "cargo",
+      "runtimeArgs": ["run", "-p", "inkframe", "--", "--config", "config/dev.toml"],
+      "port": 8080
+    }
+  ]
+}

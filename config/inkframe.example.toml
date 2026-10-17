@@ -1,0 +1,125 @@
+version = 1
+timezone = "Asia/Shanghai"
+data_dir = "/data/inkframe"
+fonts_dir = "/opt/inkframe/fonts"
+
+[display]
+backend = "hardware"
+spi_device = "/dev/spidev0.0"
+gpio_chip = "/dev/gpiochip0"
+busy_timeout_secs = 60
+max_retries = 2
+
+[display.pins]
+rst = 17
+dc = 25
+busy = 24
+pwr = 18
+has_pwr = true
+
+[display.palette]
+black = "#1C1F22"
+white = "#EDEBE4"
+yellow = "#E6CC2E"
+red = "#B4161B"
+blue = "#1F56B3"
+green = "#2E6B3F"
+
+[weather]
+provider = "qweather"
+api_host = ""
+api_key = ""
+jwt_project_id = ""
+jwt_key_id = ""
+jwt_private_key_path = ""
+location = "101280601"
+city_name = "深圳"
+request_timeout_secs = 15
+prefetch_minutes = 10
+poll_minutes = 60
+
+[holiday]
+url_template = "https://raw.githubusercontent.com/NateScarlet/holiday-cn/master/{year}.json"
+mirrors = [
+    "https://fastly.jsdelivr.net/gh/NateScarlet/holiday-cn@master/{year}.json",
+    "https://cdn.jsdelivr.net/gh/NateScarlet/holiday-cn@master/{year}.json",
+]
+refresh_hours = 24
+
+[schedule]
+alert_window = [
+    "07:00",
+    "22:30",
+]
+
+[schedule.workday]
+morning = "07:00"
+photos = [
+    "18:00",
+    "19:00",
+    "20:00",
+    "21:00",
+]
+evening = "22:30"
+
+[schedule.offday]
+morning = "08:00"
+photos = [
+    "10:00",
+    "12:00",
+    "14:00",
+    "16:00",
+    "18:00",
+    "20:00",
+    "22:00",
+]
+evening = "22:30"
+
+[thresholds]
+temp_change_c = 5
+rain_probability_pct = 40
+
+[http]
+listen = "0.0.0.0:8080"
+max_upload_bytes = 8388608
+debug_endpoints = false
+
+[network]
+enabled = true
+dry_run = false
+check_interval_secs = 60
+probes = [
+    "223.5.5.5:53",
+    "119.29.29.29:53",
+]
+wifi_interface = "wlan0"
+usb_interface = "usb0"
+reconnect_after = 3
+restart_service_after = 6
+reload_driver_after = 10
+reboot_after = 15
+
+[watchdog]
+notify_interval_secs = 10
+
+[photo]
+saturation = 1.399999976158142
+contrast = 1.149999976158142
+brightness = 1.0499999523162842
+favorite_weight = 3
+max_dimension = 2400
+
+[provision]
+enabled = true
+transport = "ble"
+sim_listen = "127.0.0.1:8090"
+wifi = "nmcli"
+mock_configured = true
+mock_ip = "10.0.2.2"
+offline_start_mins = 30
+idle_timeout_mins = 10
+max_auth_failures = 5
+button_hold_secs = 5
+
+[mdns]
+enabled = true

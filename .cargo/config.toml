@@ -1,0 +1,5 @@
+[env]
+# The `ble` feature builds libdbus from C. aarch64 GCC defaults to outline
+# atomics (__aarch64_ldadd4_sync, …) that live in libgcc, which a static musl
+# link does not include; inline them instead.
+CFLAGS_aarch64_unknown_linux_musl = "-mno-outline-atomics"

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Toggle the read-only root. Both directions need a reboot.
+#   sudo inkframe-rw        -> writable root
+#   sudo inkframe-rw --ro   -> back to read-only
+set -euo pipefail
+if [ "${1:-}" = "--ro" ]; then
+  raspi-config nonint enable_overlayfs
+else
+  raspi-config nonint disable_overlayfs
+fi
+echo "Rebooting to apply..."
+systemctl reboot

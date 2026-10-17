@@ -1,0 +1,22 @@
+[package]
+name = "epd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+# Real panel backend (spidev + GPIO character device). Linux only.
+hw = ["dep:spidev", "dep:gpiocdev"]
+
+[dependencies]
+common.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+spidev = { version = "0.7", optional = true }
+gpiocdev = { version = "0.8", optional = true }
+
+[lints]
+workspace = true

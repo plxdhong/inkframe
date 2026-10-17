@@ -1,0 +1,59 @@
+[package]
+name = "inkframe"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "inkframe"
+path = "src/main.rs"
+
+[features]
+default = []
+hw = ["epd/hw", "dep:gpiocdev"]
+# BLE provisioning over BlueZ (Linux only). libdbus is built from source so the
+# musl cross build needs no system library.
+ble = ["dep:bluer", "dep:libdbus-sys", "dep:futures-util"]
+
+[dependencies]
+common.workspace = true
+epd.workspace = true
+render.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+tracing.workspace = true
+toml.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "signal", "net", "fs", "process"] }
+axum = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "gzip"] }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+sd-notify = "0.4"
+rand = "0.8"
+image = { version = "0.25", default-features = false, features = ["png"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+aes-gcm = "0.10"
+hkdf = "0.12"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+ed25519-dalek = { version = "2", features = ["pkcs8", "pem"] }
+mdns-sd = "0.21"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gpiocdev = { version = "0.8", optional = true }
+bluer = { version = "0.17", optional = true, features = ["bluetoothd"] }
+libdbus-sys = { version = "0.2", optional = true, features = ["vendored"] }
+futures-util = { version = "0.3", optional = true }
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tempfile = "3"
+tokio = { version = "1", features = ["test-util"] }
+
+[lints]
+workspace = true

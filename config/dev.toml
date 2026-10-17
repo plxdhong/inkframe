@@ -1,0 +1,33 @@
+# Local development on a Mac/PC: no panel, no API key, no system changes.
+version = 1
+timezone = "Asia/Shanghai"
+data_dir = "data/dev"
+fonts_dir = "assets/fonts"
+
+[display]
+backend = "mock"
+
+[weather]
+provider = "mock"
+city_name = "深圳"
+
+[http]
+listen = "127.0.0.1:8080"
+debug_endpoints = true
+
+[network]
+# Probe for real, but only log the recovery commands.
+dry_run = true
+
+[provision]
+# No radio on a laptop: the app connects to the TCP simulator instead
+# (from the Android emulator: 10.0.2.2:8090). Simulated networks use
+# the password "inkframe123".
+transport = "sim"
+sim_listen = "0.0.0.0:8090"
+wifi = "mock"
+mock_ip = "10.0.2.2"
+
+[mdns]
+# Advertised addresses would not match the 127.0.0.1 listener.
+enabled = false

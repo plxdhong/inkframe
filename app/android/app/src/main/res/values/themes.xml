@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws everything; this only sets the window before first frame. -->
+    <style name="Theme.InkFrame" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+    </style>
+    <color name="paper">#EDEBE4</color>
+</resources>

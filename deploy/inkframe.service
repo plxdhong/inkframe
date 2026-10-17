@@ -1,0 +1,30 @@
+[Unit]
+Description=inkframe e-paper frame
+After=network-online.target time-sync.target
+Wants=network-online.target
+# Give up restarting in a tight loop and let the board reboot instead.
+StartLimitIntervalSec=900
+StartLimitBurst=10
+StartLimitAction=reboot
+
+[Service]
+Type=notify
+NotifyAccess=main
+# The binary, fonts and config live on the data partition so they survive
+# (and can be updated under) the read-only overlay root.
+ExecStart=/data/inkframe/app/inkframe --config /data/inkframe/config.toml
+Restart=always
+RestartSec=5
+# Petted only while every internal task heartbeats (see health.rs).
+WatchdogSec=60
+TimeoutStopSec=90
+MemoryMax=300M
+Nice=-2
+# Root is needed for GPIO/SPI plus nmcli/systemctl network recovery.
+User=root
+ProtectHome=true
+PrivateTmp=true
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target
