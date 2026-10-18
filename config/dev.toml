@@ -31,3 +31,7 @@ mock_ip = "10.0.2.2"
 [mdns]
 # Advertised addresses would not match the 127.0.0.1 listener.
 enabled = false
+
+[power]
+# Paint the power-off screen, then only log systemctl poweroff/reboot.
+dry_run = true

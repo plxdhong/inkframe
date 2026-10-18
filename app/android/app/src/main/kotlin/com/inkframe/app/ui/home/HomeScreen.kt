@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -20,9 +21,13 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -46,7 +51,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class HomeUi(val status: Status? = null, val error: String? = null, val bust: Long = 0, val busy: Boolean = false)
+/** [powerSent] is the power action this app sent ("shutdown" / "reboot"), so losing the frame afterwards is expected. */
+data class HomeUi(
+    val status: Status? = null,
+    val error: String? = null,
+    val bust: Long = 0,
+    val busy: Boolean = false,
+    val powerSent: String? = null,
+    val notice: String? = null,
+)
 
 class HomeViewModel(val api: InkFrameApi) : ViewModel() {
     private val _ui = MutableStateFlow(HomeUi())
@@ -65,10 +78,26 @@ class HomeViewModel(val api: InkFrameApi) : ViewModel() {
                 _ui.update {
                     // Reload the preview whenever the panel finished another refresh.
                     val changed = it.status?.display?.last_refresh != s.display?.last_refresh
-                    it.copy(status = s, error = null, bust = if (changed) System.currentTimeMillis() else it.bust)
+                    // Reachable and no longer busy with it: the reboot finished (or a dry run / failure).
+                    val back = it.powerSent != null && s.power?.pending == null
+                    it.copy(
+                        status = s,
+                        error = null,
+                        bust = if (changed) System.currentTimeMillis() else it.bust,
+                        powerSent = if (back) null else it.powerSent,
+                        notice = if (back) null else it.notice,
+                    )
                 }
             }
-            .onFailure { e -> _ui.update { it.copy(error = "连不上相框：${e.message}") } }
+            .onFailure { e ->
+                _ui.update {
+                    when (it.powerSent) {
+                        "shutdown" -> it.copy(error = null, notice = "相框已关机。重新接通电源即可开机。")
+                        "reboot" -> it.copy(error = null, notice = "相框正在重启，大约 1 分钟后恢复…")
+                        else -> it.copy(error = "连不上相框：${e.message}")
+                    }
+                }
+            }
     }
 
     private fun act(block: suspend () -> Unit) = viewModelScope.launch {
@@ -80,6 +109,12 @@ class HomeViewModel(val api: InkFrameApi) : ViewModel() {
 
     fun refresh(target: String) = act { api.refresh(target) }
     fun setMode(mode: String) = act { api.setMode(mode) }
+
+    fun power(action: String) = act {
+        val r = api.power(action)
+        val msg = if (action == "shutdown") "正在关机：屏幕显示「已关机」后即可断电。" else "正在重启，大约 1 分钟后恢复…"
+        _ui.update { it.copy(powerSent = action, notice = if (r.dry_run) "$msg（dry run，不会真的执行）" else msg) }
+    }
 }
 
 private val slotNames = mapOf("morning" to "早间仪表盘", "evening" to "晚间仪表盘", "photo" to "照片")
@@ -91,9 +126,11 @@ fun HomeScreen(vm: HomeViewModel) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(vm) { lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { vm.poll() } }
     val s = ui.status
+    var confirmPower by remember { mutableStateOf<String?>(null) }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ui.error?.let { ErrorBanner(it) }
+        ui.notice?.let { InkCard { Text(it) } }
         PanelFrame {
             SubcomposeAsyncImage(
                 model = vm.api.previewUrl(ui.bust),
@@ -144,6 +181,44 @@ fun HomeScreen(vm: HomeViewModel) {
                 s.display?.last_error?.let { Kv("屏幕错误", it) }
             }
         }
+
+        val power = s?.power
+        if (power != null && power.enabled) {
+            val idle = !ui.busy && power.pending == null && ui.powerSent == null
+            InkCard(title = "电源") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { confirmPower = "reboot" }, enabled = idle) { Text("重启") }
+                    OutlinedButton(onClick = { confirmPower = "shutdown" }, enabled = idle) {
+                        Text("关机", color = if (idle) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(
+                    "关机后无法用手机开机，需要重新接通电源。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+
+    confirmPower?.let { action ->
+        val shutdown = action == "shutdown"
+        AlertDialog(
+            onDismissRequest = { confirmPower = null },
+            title = { Text(if (shutdown) "关机？" else "重启相框？") },
+            text = {
+                Text(
+                    if (shutdown) "屏幕会先显示「已关机」（约 15 秒），之后可以安全拔掉电源。关机后需要重新接通电源才能开机，手机无法远程开机。"
+                    else "大约 1 分钟后恢复，期间画面保持不变。"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { vm.power(action); confirmPower = null }) {
+                    Text(if (shutdown) "关机" else "重启", color = if (shutdown) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmPower = null }) { Text("取消") } },
+        )
     }
 }
 

@@ -24,6 +24,8 @@ data class Status(
     val display: DisplayInfo? = null,
     val photos: Int = 0,
     val device: Identity? = null,
+    /** Absent on daemons older than remote power control. */
+    val power: Power? = null,
 ) {
     @Serializable data class Event(val at: String, val slot: String)
     @Serializable data class Shown(val content: String, val at: String)
@@ -33,10 +35,14 @@ data class Status(
     @Serializable data class NetInfo(val online: Boolean = true)
     @Serializable data class DisplayInfo(val busy: Boolean = false, val last_refresh: String? = null, val last_error: String? = null)
     @Serializable data class Identity(val id: String, val name: String)
+    @Serializable data class Power(val enabled: Boolean = true, val pending: String? = null)
 }
 
 @Serializable
 data class PhotoMeta(val id: String, val added: String, val favorite: Boolean = false, val paused: Boolean = false)
+
+@Serializable
+data class PowerAccepted(val action: String = "", val dry_run: Boolean = false)
 
 @Serializable
 data class ConfigSaved(val saved: Boolean = false, val restart_required: Boolean = false)

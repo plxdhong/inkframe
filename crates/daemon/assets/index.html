@@ -82,6 +82,14 @@ pre{margin:0;background:var(--ink);color:var(--paper);padding:10px;font:12px/1.4
       <p class="hint">用手机 App「添加相框」完成。新设备开机会自动进入配网；长时间断网时只开启蓝牙广播，手机连上后才显示配网码。</p>
     </section>
     <section>
+      <h2>电源</h2>
+      <div class="row">
+        <button type="button" id="reboot">重启</button>
+        <button type="button" class="danger" id="shutdown">关机</button>
+      </div>
+      <p class="hint">关机前屏幕会先显示「已关机」（约 15 秒），之后可以安全断电；重新通电即开机。重启约 1 分钟，画面保持不变。</p>
+    </section>
+    <section>
       <h2>照片</h2>
       <div class="row">
         <label for="file">上传（自动裁剪为 800×480）</label>
@@ -161,6 +169,7 @@ async function refreshStatus() {
       ['照片', s.photos + ' 张'],
       ['运行时长', Math.round(s.uptime_secs / 60) + ' 分钟'],
     ];
+    if (s.power && s.power.pending) rows.push(['电源', `<span class="bad">${s.power.pending === 'shutdown' ? '正在关机' : '正在重启'}</span>`]);
     const p = s.provision;
     const reasons = { unconfigured: '未配置 Wi-Fi', offline: '长时间断网', button: '按键', api: '手动开启' };
     $('#prov').innerHTML = p.active
@@ -213,6 +222,9 @@ $('#reprocess').onclick = () => post('/photos/reprocess').then(r => toast(`已�
 document.querySelectorAll('[data-refresh]').forEach(b => b.onclick = () => post('/refresh', { target: b.dataset.refresh }).then(() => toast('已加入刷新队列')).catch(e => toast(e.message)));
 document.querySelectorAll('[data-pattern]').forEach(b => b.onclick = () => post('/test-pattern', { kind: b.dataset.pattern }).then(() => toast('测试图案已发送')).catch(e => toast(e.message)));
 $('#provStart').onclick = () => post('/provision/start').then(r => toast(r.started ? '已开始配网' : '配网已在进行')).catch(e => toast(e.message));
+const powerAction = (action, ask, done) => confirm(ask) && post('/power', { action }).then(r => toast(done + (r.dry_run ? '（dry run，不会真的执行）' : ''))).catch(e => toast(e.message));
+$('#reboot').onclick = () => powerAction('reboot', '重启相框？约 1 分钟后恢复。', '正在重启');
+$('#shutdown').onclick = () => powerAction('shutdown', '关机？之后需要重新接通电源才能开机，手机无法远程开机。', '正在关机，屏幕显示「已关机」后即可断电');
 $('#provStop').onclick = () => post('/provision/stop').then(() => toast('正在结束配网'));
 $('#mode').onchange = e => post('/mode', { mode: e.target.value }, 'PUT').then(() => toast('模式已切换')).catch(err => toast(err.message));
 

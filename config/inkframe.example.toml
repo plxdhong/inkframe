@@ -123,3 +123,7 @@ button_hold_secs = 5
 
 [mdns]
 enabled = true
+
+[power]
+enabled = true
+dry_run = false

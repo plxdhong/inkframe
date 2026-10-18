@@ -20,6 +20,7 @@
 //! | POST   | /api/v1/photos/reprocess     | re-dither all after palette changes       |
 //! | GET    | /api/v1/provision            | BLE provisioning state                    |
 //! | POST   | /api/v1/provision/start|stop | start/stop provisioning (code on panel)   |
+//! | POST   | /api/v1/power                | `{"action":"shutdown|reboot"}` → 202      |
 //! | POST   | /api/v1/debug/*              | clock offset, stall, fake warning (opt-in)|
 //! | GET    | /api/v1/debug/provision-code | current setup code, for test automation   |
 
@@ -78,6 +79,7 @@ pub fn router(app: AppState) -> Router {
         .route("/provision", get(provision_status))
         .route("/provision/start", post(provision_start))
         .route("/provision/stop", post(provision_stop))
+        .route("/power", post(power))
         .route("/photos/{id}", patch(update_photo).delete(delete_photo))
         .route("/photos/{id}/source.png", get(photo_source));
     if app.config().http.debug_endpoints {
@@ -137,6 +139,10 @@ async fn status(State(app): State<AppState>) -> Json<Value> {
         })),
         "network": net,
         "photos": app.photos.list().len(),
+        "power": {
+            "enabled": cfg.power.enabled,
+            "pending": app.power.pending(),
+        },
     }))
 }
 
@@ -371,6 +377,29 @@ async fn provision_start(State(app): State<AppState>) -> ApiResult<Json<Value>> 
 async fn provision_stop(State(app): State<AppState>) -> Json<Value> {
     app.provision.stop();
     Json(json!({ "stopping": true }))
+}
+
+#[derive(Deserialize)]
+struct PowerReq {
+    action: crate::power::Action,
+}
+
+async fn power(
+    State(app): State<AppState>,
+    Json(req): Json<PowerReq>,
+) -> ApiResult<(StatusCode, Json<Value>)> {
+    use crate::power::PowerError;
+    crate::power::request(&app, req.action).map_err(|e| match e {
+        PowerError::Disabled => ApiError(StatusCode::FORBIDDEN, e.to_string()),
+        PowerError::Busy(_) => ApiError(StatusCode::CONFLICT, e.to_string()),
+    })?;
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "action": req.action,
+            "dry_run": app.config().power.dry_run,
+        })),
+    ))
 }
 
 async fn reprocess_photos(State(app): State<AppState>) -> ApiResult<Json<Value>> {

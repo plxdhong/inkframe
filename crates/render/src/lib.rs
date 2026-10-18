@@ -4,6 +4,7 @@ mod icons;
 pub mod palette;
 pub mod patterns;
 pub mod photo;
+pub mod power;
 pub mod setup;
 pub mod text;
 

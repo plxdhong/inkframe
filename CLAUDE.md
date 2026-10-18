@@ -23,7 +23,8 @@ cargo test --workspace && cargo clippy --workspace --all-targets
 ```
 
 `config/dev.toml`: mock panel, mock weather (matches the design mockup), network recovery dry-run,
-debug endpoints on, provisioning over the TCP simulator (`:8090`) with mock Wi-Fi (password `inkframe123`). Debug API: `POST /api/v1/debug/clock {"at":"2026-10-15 06:59"}` moves time,
+debug endpoints on, provisioning over the TCP simulator (`:8090`) with mock Wi-Fi (password `inkframe123`),
+power dry-run (`POST /api/v1/power {"action":"shutdown|reboot"}` paints the power-off screen, then only logs `systemctl`). Debug API: `POST /api/v1/debug/clock {"at":"2026-10-15 06:59"}` moves time,
 `/debug/warning` injects a weather warning, `/debug/stall {"task":"weather"}` hangs a task to test the watchdog.
 
 ## Reliability rules (hard requirements, enforced in review)

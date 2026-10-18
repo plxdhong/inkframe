@@ -40,6 +40,9 @@ struct Shared {
     status: DisplayStatus,
     frame: Option<Frame>,
     preview: Option<Arc<Vec<u8>>>,
+    /// Set by `show_final`: later jobs are refused so nothing paints over the
+    /// power-off screen.
+    sealed: bool,
 }
 
 #[derive(Clone)]
@@ -161,14 +164,34 @@ impl Display {
     }
 
     pub async fn show(&self, frame: Frame, label: impl Into<String>) -> anyhow::Result<()> {
+        self.submit(frame, label.into(), false).await
+    }
+
+    /// Shows `frame` as the last image and refuses every later job until
+    /// `unseal`. Jobs already queued still run first.
+    pub async fn show_final(&self, frame: Frame, label: impl Into<String>) -> anyhow::Result<()> {
+        self.submit(frame, label.into(), true).await
+    }
+
+    pub fn unseal(&self) {
+        lock(&self.shared).sealed = false;
+    }
+
+    async fn submit(&self, frame: Frame, label: String, seal: bool) -> anyhow::Result<()> {
         let (reply, rx) = oneshot::channel();
-        self.tx
-            .send(Job {
-                frame,
-                label: label.into(),
-                reply,
-            })
-            .map_err(|_| anyhow::anyhow!("display thread is gone"))?;
+        {
+            // Checked and sent under the lock so no job slips in after the seal.
+            let mut g = lock(&self.shared);
+            anyhow::ensure!(!g.sealed, "panel is held for power-off");
+            g.sealed = seal;
+            self.tx
+                .send(Job {
+                    frame,
+                    label,
+                    reply,
+                })
+                .map_err(|_| anyhow::anyhow!("display thread is gone"))?;
+        }
         match tokio::time::timeout(self.job_timeout, rx).await {
             Ok(Ok(Ok(()))) => Ok(()),
             Ok(Ok(Err(e))) => Err(anyhow::anyhow!("refresh failed: {e}")),

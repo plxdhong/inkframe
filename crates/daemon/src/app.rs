@@ -43,6 +43,7 @@ pub struct App {
     pub started: DateTime<Utc>,
     pub identity: crate::device::Identity,
     pub provision: Provisioner,
+    pub power: crate::power::Power,
 }
 
 impl App {
@@ -90,6 +91,7 @@ impl App {
         let app = Self {
             identity,
             provision,
+            power: Default::default(),
             clock: Clock::new(cfg.tz()),
             weather: WeatherStore::open(&cfg.data_dir),
             photos: PhotoStore::new(&cfg.data_dir),

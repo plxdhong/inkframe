@@ -65,6 +65,10 @@ class InkFrameApi(private val http: HttpClient, val device: Device) {
         http.put("$api/mode") { contentType(ContentType.Application.Json); setBody(json { put("mode", mode) }) }.ok()
     }
 
+    /** [action] is "shutdown" or "reboot"; the frame answers before it goes down. */
+    suspend fun power(action: String): PowerAccepted =
+        http.post("$api/power") { contentType(ContentType.Application.Json); setBody(json { put("action", action) }) }.ok().body()
+
     /** The whole config as JSON, so fields this app version does not know survive a save. */
     suspend fun config(): JsonObject = http.get("$api/config").ok().body()
 

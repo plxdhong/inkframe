@@ -37,6 +37,7 @@ pub struct Config {
     pub photo: PhotoConfig,
     pub provision: ProvisionConfig,
     pub mdns: MdnsConfig,
+    pub power: PowerConfig,
 }
 
 impl Default for Config {
@@ -57,6 +58,7 @@ impl Default for Config {
             photo: PhotoConfig::default(),
             provision: ProvisionConfig::default(),
             mdns: MdnsConfig::default(),
+            power: PowerConfig::default(),
         }
     }
 }
@@ -448,6 +450,24 @@ pub struct MdnsConfig {
 impl Default for MdnsConfig {
     fn default() -> Self {
         Self { enabled: true }
+    }
+}
+
+/// Remote shutdown / reboot over `POST /api/v1/power`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, deny_unknown_fields)]
+pub struct PowerConfig {
+    pub enabled: bool,
+    /// Paint the power-off screen but only log `systemctl poweroff|reboot`.
+    pub dry_run: bool,
+}
+
+impl Default for PowerConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            dry_run: false,
+        }
     }
 }
 

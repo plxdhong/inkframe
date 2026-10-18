@@ -11,6 +11,7 @@ mod logs;
 mod mdns;
 mod network;
 mod photos;
+mod power;
 mod provision;
 mod schedule;
 mod state;

@@ -205,7 +205,11 @@ pub async fn run(app: Arc<App>, rx: Arc<Mutex<mpsc::Receiver<Command>>>) -> anyh
         }
 
         // The setup code stays up until provisioning ends (which re-runs the schedule).
-        if clock_trusted && retry_at.is_none_or(|t| now >= t) && !app.provision.holds_display() {
+        if clock_trusted
+            && retry_at.is_none_or(|t| now >= t)
+            && !app.provision.holds_display()
+            && app.power.pending().is_none()
+        {
             if let Some(ev) = due_event(&app, now) {
                 let mode = app.state().mode;
                 let slot = effective_slot(mode, ev.slot);
@@ -249,6 +253,12 @@ pub async fn run(app: Arc<App>, rx: Arc<Mutex<mpsc::Receiver<Command>>>) -> anyh
 
 async fn handle(app: &Arc<App>, cmd: Command) {
     let now = app.clock.local();
+    if let Some(action) = app.power.pending() {
+        if !matches!(cmd, Command::Wake) {
+            tracing::warn!(?action, "ignoring panel request during power action");
+        }
+        return;
+    }
     let result = match cmd {
         Command::Wake => return,
         Command::Refresh(Target::Auto) => {

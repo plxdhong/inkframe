@@ -131,6 +131,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &palette,
         )?,
     )?;
+    std::fs::write(
+        out.join("power-off.png"),
+        preview_png(
+            &render::power::off(&fonts, "inkframe-3fa2", "10-18 21:30"),
+            &palette,
+        )?,
+    )?;
     println!("wrote previews to {}", out.display());
     Ok(())
 }
