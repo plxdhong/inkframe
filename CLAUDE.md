@@ -76,7 +76,8 @@ First-time setup, data-partition notes and the Wi-Fi drop post-mortem: `docs/DEV
 
 ## Status
 
-- v0.1.0 (tag `v0.1.0`) is in daily use since 2026-10-17 and the 30-day soak (P4) runs alongside:
+- v0.1.0 (tag `v0.1.0`) is in daily use since 2026-10-17 (v0.1.1, remote shutdown/reboot from the
+  app and debug page, since 2026-10-22; shutdown and reboot verified on hardware) and the 30-day soak (P4) runs alongside:
   `PI=<ssh host> ./deploy/soak-check.sh` once or twice a day, see `docs/DEVICE.md` §6. Release bundles go
   to `dist/` (ignored) via `deploy/package.sh`.
 - Running on the real device (Debian 13, glibc build with `hw,ble`) since 2026-10-17:

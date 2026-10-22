@@ -93,7 +93,7 @@ App updates via `deploy.sh` keep working with the overlay on, because the binary
 
 ## 6. Daily use and soak test (from 2026-10-17)
 
-v0.1.0 is in daily use; the 30-day soak (P4) and the open P0 checks run alongside it. Verified on
+v0.1.0 is in daily use (v0.1.1, remote shutdown/reboot, since 2026-10-22); the 30-day soak (P4) and the open P0 checks run alongside it. Verified on
 hardware before this started: dashboard and photo schedule, weather and holidays, photo
 upload/preview/rotation from the phone, BLE provisioning, mDNS discovery, watchdog and recovery.
 

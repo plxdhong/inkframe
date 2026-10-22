@@ -57,7 +57,8 @@ credentials in `/data/inkframe/config.toml`: either `weather.api_key`, or `jwt_p
 
 ## Status
 
-v0.1.0 runs on the author's frame and has been checked end to end with a real phone (Android 15).
+v0.1.1 runs on the author's frame and has been checked end to end with a real phone (Android 15),
+including remote reboot and shutdown from the app.
 Not verified yet: the static musl build of the BLE feature, Android 10/11, and long-term soak
 results. The default colour palette is the design palette; calibrate it for your panel with the
 dither test pattern.
